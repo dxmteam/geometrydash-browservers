@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GD_MERGED_FINAL</title>
+    <style>
+        :root { --neon: #00ff41; --bg: #050505; --panel: #111; --text: #eee; --gold: #ffd700; --epic: linear-gradient(45deg, #ffd700, #ff3e3e); }
+        body { margin: 0; padding: 0; overflow: hidden; background: var(--bg); font-family: 'Courier New', monospace; color: var(--text); touch-action: none; }
+        canvas { display: block; }
+
+        /* ЭКРАНЫ */
+        .screen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, #111 0%, #000 100%); z-index: 100; }
+        .hidden { display: none !important; }
+        
+        .menu-card { background: var(--panel); padding: 30px; border: 1px solid #333; box-shadow: 0 0 30px rgba(0,255,65,0.1); text-align: center; border-radius: 4px; width: 340px; max-width: 90%; }
+        h1 { color: var(--neon); text-shadow: 0 0 10px var(--neon); letter-spacing: 4px; font-size: 24px; margin-bottom: 20px; }
+        
+        input { background: #000; border: 1px solid #333; color: var(--neon); padding: 12px; width: 100%; margin: 10px 0; box-sizing: border-box; outline: none; }
+        
+        .btn { background: transparent; color: var(--neon); border: 1px solid var(--neon); padding: 12px; margin: 5px; width: 100%; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.2s; box-sizing: border-box; }
+        .btn:hover { background: var(--neon); color: #000; box-shadow: 0 0 15px var(--neon); }
+        .btn-red { color: #ff3e3e; border-color: #ff3e3e; }
+        .btn-red:hover { background: #ff3e3e; box-shadow: 0 0 15px #ff3e3e; }
+        .btn-gold { color: var(--gold); border-color: var(--gold); }
+        .btn-small { padding: 8px; font-size: 10px; width: auto; margin: 2px; }
+
+        /* ИНТЕРФЕЙС ИГРЫ/РЕДАКТОРА */
+        #top-bar { position: absolute; top: 0; width: 100%; display: flex; justify-content: space-between; padding: 10px; box-sizing: border-box; z-index: 60; background: rgba(0,0,0,0.8); }
+        .level-tag { color: var(--neon); font-size: 12px; align-self: center; font-weight: bold; }
+
+        #editor-ui { position: absolute; bottom: 0; left: 0; width: 100%; height: 180px; background: #000; border-top: 1px solid #333; display: flex; flex-direction: column; z-index: 50; }
+        .tabs { display: flex; background: #0a0a0a; border-bottom: 1px solid #222; }
+        .tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; opacity: 0.4; font-size: 12px; font-weight: bold; }
+        .tab.active { opacity: 1; color: var(--neon); border-bottom: 2px solid var(--neon); }
+        
+        .content-area { display: flex; overflow-x: auto; padding: 10px; gap: 8px; height: 100%; align-items: center; flex-wrap: wrap; align-content: flex-start; }
+        .obj-btn { min-width: 55px; height: 55px; border: 1px solid #333; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #666; cursor: pointer; background: #111; flex-shrink: 0; }
+        
+        .list-container { margin-top: 15px; width: 100%; max-height: 250px; overflow-y: auto; }
+        .level-item { background: #0d0d0d; padding: 12px; margin: 8px 0; border: 1px solid #222; text-align: left; position: relative; }
+        
+        /* РЕЙТИНГИ */
+        .rated-dot { color: var(--gold); text-shadow: 0 0 8px var(--gold); margin-right: 5px; font-size: 18px; vertical-align: middle; }
+        .epic-dot { background: var(--epic); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 5px #ff3e3e); font-weight: bold; }
+        .stars-label { color: var(--gold); font-size: 10px; display: block; margin-top: 4px; font-weight: bold; }
+        
+        .admin-box { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #444; display: flex; gap: 5px; flex-wrap: wrap; }
+
+        .color-row { display: flex; align-items: center; justify-content: space-between; width: 250px; color: #ccc; font-size: 12px; margin: 10px; }
+        input[type="color"] { padding: 0; width: 50px; height: 30px; border: none; background: none; cursor: pointer; }
+        
+        #progress-bar { position: absolute; top: 0; left: 0; height: 3px; background: var(--neon); width: 0%; z-index: 70; transition: 0.1s; }
+        
+        /* DEBUG INFO */
+        #debug { position: absolute; bottom: 190px; left: 10px; font-size: 10px; color: #555; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+<div id="debug"></div>
+
+<div id="screen-auth" class="screen">
+    <div class="menu-card">
+        <h1>CONNECT_NET</h1>
+        <input type="text" id="auth-nick" placeholder="NICKNAME (NEW 2.3 UPDATE LES GO!)">
+        <button class="btn" onclick="window.authUser()">LOGIN</button>
+    </div>
+</div>
+
+<div id="main-menu" class="screen hidden">
+    <div class="menu-card">
+        <h1 id="welcome-text">GD_PIZDEC</h1>
+        <button class="btn" onclick="window.startNewLevel()">EDITOR</button>
+        <button class="btn" onclick="window.showScreen('my-levels')">MY LEVELS</button>
+        <button class="btn" onclick="window.showScreen('online-levels')">GLOBAL SERVER</button>
+        <button class="btn btn-red" onclick="location.reload()">LOGOUT</button>
+    </div>
+</div>
+
+<div id="my-levels" class="screen hidden">
+    <div class="menu-card" style="width: 380px;">
+        <h1>LOCAL_STORAGE</h1>
+        <div id="levels-list" class="list-container"></div>
+        <button class="btn btn-red" onclick="window.showScreen('main-menu')">BACK</button>
+    </div>
+</div>
+
+<div id="online-levels" class="screen hidden">
+    <div class="menu-card" style="width: 420px;">
+        <h1>GLOBAL_NET</h1>
+        <div id="online-list" class="list-container"></div>
+        <button class="btn btn-red" onclick="window.showScreen('main-menu')">BACK</button>
+    </div>
+</div>
+
+<div id="top-bar" class="hidden">
+    <button class="btn" style="width:auto" id="exit-btn" onclick="window.exitToMenu()">EXIT</button>
+    <div id="level-info" class="level-tag">ID: 0000 | MODE: BUILD</div>
+    <button class="btn" id="play-btn" style="width:auto" onclick="window.togglePlaytest()">PLAY</button>
+</div>
+
+<div id="editor-ui" class="hidden">
+    <div class="tabs">
+        <div id="tab-build" class="tab active" onclick="window.switchTab('build')">BUILD</div>
+        <div id="tab-edit" class="tab" onclick="window.switchTab('edit')">EDIT</div>
+        <div id="tab-color" class="tab" onclick="window.switchTab('color')">COLOR</div>
+    </div>
+    
+    <div id="panel-build" class="content-area">
+        <div class="obj-btn" onclick="window.selectedType='block'">BLOCK</div>
+        <div class="obj-btn" onclick="window.selectedType='slope'" style="font-weight:bold; color:#aaa">SLOPE</div>
+        <div class="obj-btn" onclick="window.selectedType='spike'">SPIKE</div>
+        <div class="obj-btn" onclick="window.selectedType='start'" style="color:cyan">START</div>
+        <div class="obj-btn" onclick="window.selectedType='orb'" style="color:yellow">ORB</div>
+        <div class="obj-btn" onclick="window.selectedType='pad'" style="color:magenta">PAD</div>
+        <div class="obj-btn" onclick="window.selectedType='end'" style="color:var(--neon)">FINISH</div>
+        <div class="obj-btn" onclick="window.selectedType='portal_wave'" style="color:#00a8ff; font-weight:bold">P_WAVE</div>
+        <div class="obj-btn" onclick="window.selectedType='portal_cube'" style="color:#00ff00; font-weight:bold">P_CUBE</div>
+    </div>
+    
+    <div id="panel-edit" class="content-area hidden">
+        <button class="btn btn-small" onclick="window.cameraX -= 150"> CAM << </button>
+        <button class="btn btn-small" onclick="window.cameraX += 150"> CAM >> </button>
+        <button class="btn btn-small" onclick="window.moveObj(0,-10)">UP</button>
+        <button class="btn btn-small" onclick="window.moveObj(0,10)">DN</button>
+        <button class="btn btn-small" onclick="window.moveObj(-10,0)">LEFT</button>
+        <button class="btn btn-small" onclick="window.moveObj(10,0)">RIGHT</button>
+        <button class="btn btn-small" onclick="window.scaleObj(0.2)">SIZE+</button>
+        <button class="btn btn-small" onclick="window.scaleObj(-0.2)">SIZE-</button>
+        <button class="btn btn-small" onclick="window.rotateObj()">ROT</button>
+        <button class="btn btn-small" onclick="window.copyObj()">COPY</button>
+        <button class="btn btn-small" onclick="window.pasteObj()">PASTE</button>
+        <button class="btn btn-small btn-red" onclick="window.deleteObj()">DEL</button>
+    </div>
+
+    <div id="panel-color" class="content-area hidden" style="flex-direction: column;">
+        <div class="color-row">
+            <span>OBJ COLOR:</span>
+            <input type="color" id="color-obj" onchange="window.setObjColor(this.value)">
+        </div>
+        <div class="color-row">
+            <span>BG COLOR:</span>
+            <input type="color" id="color-bg" onchange="window.setBgColor(this.value)" value="#050505">
+        </div>
+    </div>
+</div>
+
+<canvas id="g"></canvas>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, get, child, remove, update as dbUpdate } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyB2cAHCuBmB7rr0S9YFmAQ3fK9lvUm-8AQ",
+        authDomain: "dfssdfgg-df720.firebaseapp.com",
+        projectId: "dfssdfgg-df720",
+        storageBucket: "dfssdfgg-df720.firebasestorage.app",
+        messagingSenderId: "751965793703",
+        appId: "1:751965793703:web:9dcfbf89ca9997b757da82",
+        databaseURL: "https://dfssdfgg-df720-default-rtdb.firebaseio.com"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // ГЛОБАЛЬНОЕ СОСТОЯНИЕ
+    window.user = { nick: "", isAdmin: false };
+    window.gameState = 'AUTH';
+    window.currentTab = 'build';
+    window.selectedType = 'block';
+    window.selectedInstance = null;
+    window.clipboard = null; 
+    window.levelData = [];
+    window.levelBgColor = '#050505';
+    window.cameraX = 0;
+    window.curName = "Project";
+    window.curId = 0;
+    window.particles = []; // частицы для смерти
+
+    const cvs = document.getElementById('g');
+    const ctx = cvs.getContext('2d');
+
+    const logicalFloorY = 500; 
+    const bs = 40; 
+    const gravity = 0.15;        // из второго файла (стабильная физика)
+    const jumpForce = -5.5;       // из второго
+    const speed = 3.0;            // из второго
+    const waveSpeed = 4.5;        // из второго
+
+    let player = { x: 100, y: logicalFloorY - bs, w: bs, h: bs, dy: 0, onG: false, mode: 'cube', dead: false };
+    let isPressing = false;
+
+    window.addEventListener('resize', () => { cvs.width = window.innerWidth; cvs.height = window.innerHeight; });
+    window.dispatchEvent(new Event('resize'));
+
+    // --- СИСТЕМА АККАУНТОВ ---
+    window.authUser = function() {
+        const nick = document.getElementById('auth-nick').value.trim();
+        if(!nick) return alert("ENTER NAME");
+        window.user.nick = nick;
+        window.user.isAdmin = (nick === "dxmtm" || nick === "admin"); // из первого
+        document.getElementById('welcome-text').innerText = "PLAYER: " + nick;
+        window.showScreen('main-menu');
+    };
+
+    // --- FIREBASE ФУНКЦИИ (с эпик-рейтингом из первого) ---
+    window.publishLevel = async function(id) {
+        let levels = JSON.parse(localStorage.getItem('gd_v3') || '[]');
+        let lvl = levels.find(l => l.id === id);
+        if (lvl) {
+            lvl.author = window.user.nick;
+            lvl.stars = 0;
+            lvl.ratingType = 'none';       // добавили поле для эпик/обычный рейтинг
+            try {
+                await set(ref(db, 'public_levels/' + id), lvl);
+                alert("PUBLISHED!");
+                window.renderLevelsList();
+            } catch(e) { alert("DB ERROR!"); }
+        }
+    };
+
+    window.loadOnlineLevels = async function() {
+        const list = document.getElementById('online-list');
+        list.innerHTML = "SYNC...";
+        try {
+            const snap = await get(child(ref(db), 'public_levels'));
+            if (snap.exists()) {
+                const data = snap.val();
+                list.innerHTML = Object.values(data).map(l => `
+                    <div class="level-item">
+                        <div>
+                            ${l.ratingType === 'epic' ? '<span class="rated-dot epic-dot">●</span>' : (l.stars > 0 ? '<span class="rated-dot">●</span>' : '')}
+                            <b style="color:var(--neon)">${l.name}</b> 
+                            <span style="font-size:9px; opacity:0.6">by ${l.author || 'Guest'}</span>
+                            ${l.stars > 0 ? `<span class="stars-label">${l.stars} STARS</span>` : ''}
+                        </div>
+                        <button class="btn" style="width:70px; font-size:10px; padding:5px; margin-top:5px;" onclick="window.playGlobalLevel('${btoa(JSON.stringify(l))}')">PLAY</button>
+                        ${window.user.isAdmin ? `<div class="admin-box">
+                            <button class="btn btn-red btn-small" onclick="window.adminDelete(${l.id})">DEL</button>
+                            <button class="btn btn-gold btn-small" onclick="window.adminRate(${l.id}, 'rated')">RATE</button>
+                            <button class="btn btn-small" style="color:#ff3e3e" onclick="window.adminRate(${l.id}, 'epic')">EPIC</button>
+                        </div>` : ''}
+                    </div>
+                `).join('');
+            } else { list.innerText = "EMPTY"; }
+        } catch(e) { list.innerText = "NET ERROR"; }
+    };
+
+    window.adminDelete = async function(id) { if(confirm("DEL?")) { await remove(ref(db, 'public_levels/' + id)); window.loadOnlineLevels(); } };
+    window.adminRate = async function(id, type) {
+        const s = prompt("STARS:");
+        if(s) { 
+            await dbUpdate(ref(db, 'public_levels/' + id), { stars: parseInt(s), ratingType: type }); 
+            window.loadOnlineLevels(); 
+        }
+    };
+
+    // --- ЛОГИКА ИНТЕРФЕЙСА ---
+    window.showScreen = function(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        if(id !== 'none') document.getElementById(id).classList.remove('hidden');
+        if(id === 'my-levels') window.renderLevelsList();
+        if(id === 'online-levels') window.loadOnlineLevels();
+    };
+
+    window.startNewLevel = function() {
+        window.levelData = []; window.levelBgColor = '#050505';
+        window.curName = prompt("NAME:") || "NONAME";
+        window.curId = Math.floor(Math.random() * 99999);
+        window.gameState = 'EDITOR'; window.toggleUI(true);
+    };
+
+    window.toggleUI = function(show) {
+        document.getElementById('editor-ui').classList.toggle('hidden', !show);
+        document.getElementById('top-bar').classList.toggle('hidden', !show);
+        document.getElementById('main-menu').classList.toggle('hidden', show);
+        document.getElementById('level-info').innerText = `ID: ${window.curId} | ${window.curName}`;
+        document.getElementById('exit-btn').innerText = show ? "SAVE & EXIT" : "EXIT";
+    };
+
+    window.switchTab = function(t) {
+        window.currentTab = t;
+        ['build', 'edit', 'color'].forEach(x => {
+            document.getElementById('tab-' + x).classList.toggle('active', t === x);
+            document.getElementById('panel-' + x).classList.toggle('hidden', t !== x);
+        });
+        if(t === 'color' && window.selectedInstance) {
+            document.getElementById('color-obj').value = window.selectedInstance.color || '#ffffff';
+        }
+    };
+
+    window.setObjColor = function(c) { if(window.selectedInstance) window.selectedInstance.color = c; };
+    window.setBgColor = function(c) { window.levelBgColor = c; };
+
+    // --- ЯДРО ИГРЫ (физика из второго + частицы из первого) ---
+    window.playGlobalLevel = function(b64) {
+        const lvl = JSON.parse(atob(b64));
+        window.levelData = lvl.data; window.levelBgColor = lvl.bgColor || '#050505';
+        window.curId = lvl.id; window.curName = lvl.name;
+        window.gameState = 'ONLINE_PLAY';
+        window.showScreen('none');
+        document.getElementById('top-bar').classList.remove('hidden');
+        document.getElementById('editor-ui').classList.add('hidden');
+        document.getElementById('play-btn').innerText = "PAUSE";
+        document.getElementById('level-info').innerText = `${window.curName} by ${lvl.author}`;
+        resetPlayer();
+    };
+
+    window.togglePlaytest = function() {
+        if (window.gameState === 'EDITOR') {
+            window.gameState = 'PLAYTEST'; resetPlayer();
+            document.getElementById('play-btn').innerText = 'STOP';
+        } else if (window.gameState === 'PLAYTEST') {
+            window.gameState = 'EDITOR';
+            document.getElementById('play-btn').innerText = 'PLAY';
+        } else if (window.gameState === 'ONLINE_PLAY') {
+            if(confirm("EXIT LEVEL?")) window.exitToMenu();
+        }
+    };
+
+    function resetPlayer() {
+        const start = window.levelData.find(o => o.type === 'start');
+        player.x = start ? start.x : 100;
+        player.y = start ? start.y : logicalFloorY - (player.mode === 'wave' ? 20 : bs);
+        player.dy = 0; 
+        player.mode = 'cube';
+        player.w = bs; player.h = bs;
+        player.dead = false;
+        window.cameraX = player.x - 100;
+        // частицы не очищаем, они доживут своё
+    }
+
+    function die() {
+        if(player.dead) return;
+        player.dead = true;
+        for(let i=0; i<15; i++) {
+            window.particles.push({
+                x: player.x + player.w/2, y: player.y + player.h/2,
+                dx: (Math.random()-0.5)*10, dy: (Math.random()-0.5)*10,
+                life: 1.0, c: player.mode === 'wave' ? '#00a8ff' : '#00ff41'
+            });
+        }
+        setTimeout(resetPlayer, 600);
+    }
+
+    window.exitToMenu = function() {
+        if(window.gameState === 'EDITOR' || window.gameState === 'PLAYTEST') window.saveLocal();
+        location.reload();
+    };
+
+    window.saveLocal = function() {
+        let levels = JSON.parse(localStorage.getItem('gd_v3') || '[]');
+        levels = levels.filter(l => l.id !== window.curId);
+        levels.push({ id: window.curId, name: window.curName, data: window.levelData, author: window.user.nick, bgColor: window.levelBgColor });
+        localStorage.setItem('gd_v3', JSON.stringify(levels));
+    };
+
+    window.renderLevelsList = function() {
+        const levels = JSON.parse(localStorage.getItem('gd_v3') || '[]');
+        document.getElementById('levels-list').innerHTML = levels.map(l => `
+            <div class="level-item">
+                <span>#${l.id} <b>${l.name}</b></span>
+                <div style="display:flex; gap:5px; margin-top:5px;">
+                    <button class="btn" style="width:auto; padding:5px" onclick="window.loadLocalLevel(${l.id})">EDIT</button>
+                    <button class="btn" style="width:auto; padding:5px; color:cyan" onclick="window.publishLevel(${l.id})">PUB</button>
+                </div>
+            </div>
+        `).join('');
+    };
+
+    window.loadLocalLevel = function(id) {
+        const lvl = JSON.parse(localStorage.getItem('gd_v3')).find(l => l.id === id);
+        window.levelData = lvl.data; window.levelBgColor = lvl.bgColor;
+        document.getElementById('color-bg').value = window.levelBgColor;
+        window.curId = lvl.id; window.curName = lvl.name;
+        window.gameState = 'EDITOR'; window.toggleUI(true); window.showScreen('none');
+    };
+
+    // РЕДАКТИРОВАНИЕ
+    function getScreenCamY() { return (cvs.height * 0.7) - logicalFloorY; }
+
+    cvs.addEventListener('mousedown', e => {
+        if (window.gameState !== 'EDITOR' || e.clientY > cvs.height - 180) return;
+        const x = e.clientX + window.cameraX;
+        const y = e.clientY - getScreenCamY();
+        if (window.currentTab === 'build') {
+            window.levelData.push({ x: Math.floor(x/bs)*bs, y: Math.floor(y/bs)*bs, type: window.selectedType, rot: 0, scale: 1 });
+        } else {
+            window.selectedInstance = window.levelData.find(o => x > o.x && x < o.x + (bs*(o.scale||1)) && y > o.y && y < o.y + (bs*(o.scale||1)));
+            if(window.selectedInstance && window.currentTab === 'color') {
+                document.getElementById('color-obj').value = window.selectedInstance.color || '#ffffff';
+            }
+        }
+    });
+
+    window.moveObj = (dx, dy) => { if(window.selectedInstance) { window.selectedInstance.x += dx; window.selectedInstance.y += dy; } };
+    window.scaleObj = (ds) => { if(window.selectedInstance) window.selectedInstance.scale = Math.max(0.1, (window.selectedInstance.scale || 1) + ds); };
+    window.rotateObj = () => { if(window.selectedInstance) window.selectedInstance.rot = ((window.selectedInstance.rot || 0) + 90) % 360; };
+    window.deleteObj = () => { if(window.selectedInstance) { window.levelData = window.levelData.filter(o => o !== window.selectedInstance); window.selectedInstance = null; } };
+    window.copyObj = () => { if(window.selectedInstance) window.clipboard = JSON.parse(JSON.stringify(window.selectedInstance)); };
+    window.pasteObj = () => { if(window.clipboard) { let n = JSON.parse(JSON.stringify(window.clipboard)); n.x += 40; window.levelData.push(n); window.selectedInstance = n; } };
+
+    // ЦИКЛ ОТРИСОВКИ
+    function draw() {
+        ctx.fillStyle = window.levelBgColor; ctx.fillRect(0, 0, cvs.width, cvs.height);
+        ctx.save(); 
+        const camYOffset = getScreenCamY();
+        ctx.translate(-window.cameraX, camYOffset);
+
+        // сетка в редакторе
+        if(window.gameState === 'EDITOR') {
+            ctx.strokeStyle = "rgba(255,255,255,0.05)";
+            for (let i = 0; i < cvs.width + bs; i += bs) {
+                ctx.beginPath(); ctx.moveTo(i + window.cameraX - (window.cameraX % bs), -camYOffset); ctx.lineTo(i + window.cameraX - (window.cameraX % bs), cvs.height - camYOffset); ctx.stroke();
+            }
+        }
+
+        // пол
+        ctx.fillStyle = "#001a00"; ctx.fillRect(window.cameraX, logicalFloorY, cvs.width, 1000);
+        ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--neon'); 
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(window.cameraX, logicalFloorY); ctx.lineTo(window.cameraX + cvs.width, logicalFloorY); ctx.stroke();
+
+        window.levelData.forEach(o => {
+            let s = o.scale || 1;
+            ctx.save(); ctx.translate(o.x + (bs*s)/2, o.y + (bs*s)/2); ctx.rotate((o.rot||0) * Math.PI / 180);
+            
+            if (o === window.selectedInstance && (window.currentTab === 'edit' || window.currentTab === 'color')) {
+                ctx.strokeStyle = "white"; ctx.lineWidth = 2; ctx.strokeRect(-(bs*s)/2, -(bs*s)/2, bs*s, bs*s);
+            }
+
+            ctx.fillStyle = o.color || "#333";
+            if (o.type === 'spike') {
+                ctx.fillStyle = o.color || "#eee"; ctx.beginPath(); ctx.moveTo(-(bs*s)/2, (bs*s)/2); ctx.lineTo(0, -(bs*s)/2); ctx.lineTo((bs*s)/2, (bs*s)/2); ctx.fill();
+            } else if (o.type === 'slope') {
+                ctx.beginPath(); ctx.moveTo(-(bs*s)/2, (bs*s)/2); ctx.lineTo((bs*s)/2, (bs*s)/2); ctx.lineTo((bs*s)/2, -(bs*s)/2); ctx.fill();
+            } else if (o.type === 'start') {
+                ctx.strokeStyle = "cyan"; ctx.strokeRect(-(bs*s)/2, -(bs*s)/2, bs*s, bs*s);
+            } else if (o.type === 'orb') {
+                ctx.strokeStyle = o.color || "yellow"; ctx.beginPath(); ctx.arc(0, 0, 15*s, 0, Math.PI*2); ctx.stroke();
+            } else if (o.type === 'pad') {
+                ctx.fillStyle = o.color || "magenta"; ctx.fillRect(-(bs*s)/2, (bs*s)/4, bs*s, (bs*s)/4);
+            } else if (o.type === 'portal_wave') {
+                ctx.strokeStyle = "#00a8ff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-(bs*s)/2, (bs*s)); ctx.lineTo(0, -(bs*s)); ctx.lineTo((bs*s)/2, (bs*s)); ctx.stroke();
+            } else if (o.type === 'portal_cube') {
+                ctx.strokeStyle = "#00ff00"; ctx.lineWidth = 3; ctx.strokeRect(-(bs*s)/2, -(bs*s), bs*s, bs*s*2);
+            } else {
+                if(o.type === 'end') ctx.fillStyle = o.color || "#00ff41";
+                ctx.fillRect(-(bs*s)/2, -(bs*s)/2, bs*s, bs*s);
+                ctx.strokeStyle = "#111"; ctx.strokeRect(-(bs*s)/2, -(bs*s)/2, bs*s, bs*s);
+            }
+            ctx.restore();
+        });
+
+        // игрок
+        if (!player.dead && (window.gameState.includes('PLAY') || window.gameState === 'EDITOR' || window.gameState === 'ONLINE_PLAY')) {
+            ctx.fillStyle = player.mode === 'wave' ? "#00a8ff" : "#00ff41";
+            ctx.fillRect(player.x, player.y, player.w, player.h);
+            ctx.strokeStyle = "white"; ctx.strokeRect(player.x, player.y, player.w, player.h);
+        }
+
+        // частицы
+        window.particles.forEach((p, i) => {
+            p.x += p.dx; p.y += p.dy; p.life -= 0.02;
+            ctx.fillStyle = p.c; ctx.globalAlpha = p.life;
+            ctx.fillRect(p.x, p.y, 4, 4);
+            if(p.life <= 0) window.particles.splice(i, 1);
+        });
+        ctx.globalAlpha = 1.0;
+
+        ctx.restore();
+
+        if (window.gameState.includes('PLAY')) update();
+        requestAnimationFrame(draw);
+    }
+
+    function update() {
+        if(player.dead) return;
+
+        // физика в зависимости от режима
+        if (player.mode === 'cube') {
+            player.w = bs; player.h = bs;
+            player.dy += gravity; 
+            player.y += player.dy;
+        } else { // wave
+            player.w = 20; player.h = 20;
+            player.dy = isPressing ? -waveSpeed : waveSpeed;
+            player.y += player.dy;
+        }
+
+        player.x += speed; 
+        window.cameraX = player.x - 100;
+
+        // коллизия с полом
+        if (player.y + player.h > logicalFloorY) { 
+            if(player.mode === 'wave') { die(); } 
+            else { player.y = logicalFloorY - player.h; player.dy = 0; player.onG = true; }
+        }
+        if (player.y < -200) die(); // защита от вылета вверх
+
+        // коллизия с объектами (логика из второго файла)
+        window.levelData.forEach(o => {
+            let s = o.scale || 1;
+            let oh = (o.type.includes('portal') ? bs*s*2 : bs*s);
+            let oy = (o.type.includes('portal') ? o.y - bs*s : o.y);
+            
+            if (player.x < o.x + bs*s && player.x + player.w > o.x && player.y < oy + oh && player.y + player.h > oy) {
+                if (o.type === 'block' || o.type === 'slope') {
+                    // приземление сверху
+                    if (player.mode === 'cube' && player.dy > 0 && player.y + player.h < oy + 15) {
+                        player.y = oy - player.h; player.dy = 0; player.onG = true;
+                    } else { die(); }
+                }
+                if (o.type === 'spike') die();
+                if (o.type === 'end') { alert("LEVEL COMPLETE!"); window.togglePlaytest(); }
+                if (o.type === 'orb' && isPressing && player.mode === 'cube') { player.dy = jumpForce; player.onG = false; }
+                if (o.type === 'pad' && player.mode === 'cube') { player.dy = jumpForce * 1.6; player.onG = false; }
+                if (o.type === 'portal_wave') player.mode = 'wave';
+                if (o.type === 'portal_cube') player.mode = 'cube';
+            }
+        });
+
+        // отладочная информация
+        document.getElementById('debug').innerText = `X: ${Math.floor(player.x)} Y: ${Math.floor(player.y)} MODE: ${player.mode}`;
+    }
+
+    // УПРАВЛЕНИЕ
+    const actionDown = (e) => { 
+        if(e.type === 'keydown' && !['Space','ArrowUp','KeyW'].includes(e.code)) return;
+        if(window.gameState.includes('PLAY') && player.onG && player.mode === 'cube') { 
+            player.dy = jumpForce; player.onG = false; 
+        } 
+        isPressing = true;
+    };
+    const actionUp = () => isPressing = false;
+    
+    window.addEventListener('mousedown', actionDown);
+    window.addEventListener('touchstart', actionDown);
+    window.addEventListener('keydown', actionDown);
+    window.addEventListener('mouseup', actionUp);
+    window.addEventListener('touchend', actionUp);
+    window.addEventListener('keyup', actionUp);
+
+    draw();
+</script>
+</body>
+</html>
