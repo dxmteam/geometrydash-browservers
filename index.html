@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GDHueten'S</title>
+    <style>
+        :root {
+            --menu-bg-start: #1a1a1a;
+            --menu-bg-end: #0a0a0a;
+            --menu-card-bg: #222;
+            --menu-border: #444;
+            --menu-text: #eee;
+            --menu-text-dim: #aaa;
+            --menu-btn-border: #666;
+            --menu-btn-hover-bg: #444;
+            --menu-btn-hover-text: #fff;
+            --menu-input-bg: #111;
+            --menu-input-border: #333;
+            --menu-input-text: #0f0;
+            --menu-shadow: rgba(255,255,255,0.1);
+            --menu-play-bg: #fff;
+            --menu-play-text: #000;
+            --gold: #ffd700;
+            --featured-glow: gold;
+            --epic-flame: #ff8c00;
+            --legendary-flame: #ff44aa;
+            --mythic-flame: #44aaff;
+        }
+        body { margin: 0; padding: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; color: var(--menu-text); touch-action: none; }
+        canvas { display: block; }
+
+        .screen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle at center, var(--menu-bg-start), var(--menu-bg-end)); z-index: 100; overflow-y: auto; padding: 20px 0; }
+        .hidden { display: none !important; }
+        
+        .menu-card { background: var(--menu-card-bg); padding: 30px; border: 1px solid var(--menu-border); box-shadow: 0 0 30px var(--menu-shadow); text-align: center; border-radius: 4px; width: 500px; max-width: 95%; margin: 20px auto; }
+        h1 { color: #fff; text-shadow: none; letter-spacing: 4px; font-size: 24px; margin-bottom: 20px; font-weight: normal; }
+        h2 { color: #fff; font-size: 18px; margin: 10px 0; }
+        
+        input, textarea, select { background: var(--menu-input-bg); border: 1px solid var(--menu-input-border); color: var(--menu-input-text); padding: 12px; width: 100%; margin: 10px 0; box-sizing: border-box; outline: none; font-family: 'Courier New', monospace; }
+        textarea { min-height: 80px; resize: vertical; }
+        
+        .btn { background: transparent; color: #fff; border: 1px solid var(--menu-btn-border); padding: 12px; margin: 5px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.2s; box-sizing: border-box; }
+        .btn:hover { background: var(--menu-btn-hover-bg); color: var(--menu-btn-hover-text); box-shadow: none; }
+        .btn-red { color: #ffaaaa; border-color: #a55; }
+        .btn-red:hover { background: #a55; color: #fff; }
+        .btn-gold { color: var(--gold); border-color: var(--gold); }
+        .btn-gold:hover { background: var(--gold); color: #000; }
+        .btn-small { padding: 8px; font-size: 10px; width: auto; margin: 2px; }
+        .btn-play { background: #fff; color: #000; border: none; padding: 15px 30px; font-size: 18px; border-radius: 4px; }
+
+        #top-bar { position: absolute; top: 0; width: 100%; display: flex; justify-content: space-between; padding: 10px; box-sizing: border-box; z-index: 60; background: rgba(0,0,0,0.8); }
+        .level-tag { color: #0f0; font-size: 12px; align-self: center; font-weight: bold; }
+
+        #editor-ui { position: absolute; bottom: 0; left: 0; width: 100%; height: 220px; background: #000; border-top: 1px solid #333; display: flex; flex-direction: column; z-index: 50; }
+        .tabs { display: flex; background: #0a0a0a; border-bottom: 1px solid #222; }
+        .tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; opacity: 0.4; font-size: 12px; font-weight: bold; }
+        .tab.active { opacity: 1; color: #0f0; border-bottom: 2px solid #0f0; }
+        
+        .content-area { display: flex; overflow-x: auto; padding: 10px; gap: 8px; height: 100%; align-items: center; flex-wrap: wrap; align-content: flex-start; }
+        .obj-btn { min-width: 55px; height: 55px; border: 1px solid #333; display: flex; align-items: center; justify-content: center; font-size: 9px; cursor: pointer; background: #111; flex-shrink: 0; }
+        .multi-active { border: 2px solid #0f0; }
+        
+        .list-container { margin-top: 15px; width: 100%; max-height: 300px; overflow-y: auto; }
+        .level-item { background: #0d0d0d; padding: 12px; margin: 8px 0; border: 1px solid #222; text-align: left; position: relative; cursor: pointer; }
+        .level-item:hover { border-color: #0f0; }
+        
+        .official-selector { display: flex; align-items: center; justify-content: center; gap: 20px; margin: 30px 0; }
+        .official-arrow { font-size: 48px; cursor: pointer; color: #fff; user-select: none; }
+        .official-arrow:hover { text-shadow: 0 0 15px #fff; }
+        .official-level-display { width: 300px; height: 300px; border: 2px solid #444; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #1a1a1a; }
+        .official-level-name { font-size: 24px; color: #fff; margin: 10px 0; }
+        .official-level-difficulty { color: #aaa; }
+        
+        /* РЕЙТИНГИ И СЛОЖНОСТЬ */
+        .rating-container { display: flex; align-items: center; gap: 5px; margin: 5px 0; }
+        .difficulty-icon { width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; position: relative; background: #333; color: #fff; }
+        .difficulty-0 { background: #ffd700; }
+        .difficulty-1, .difficulty-2 { background: #00a8ff; }
+        .difficulty-3 { background: #00ff41; }
+        .difficulty-4, .difficulty-5 { background: #ffa500; }
+        .difficulty-6, .difficulty-7 { background: #ff0000; }
+        .difficulty-8, .difficulty-9 { background: #ff69b4; }
+        .difficulty-10 { background: #8b0000; }
+        .featured-glow { box-shadow: 0 0 15px gold; border: 2px solid gold; }
+        .epic-flame { box-shadow: 0 0 20px #ff8c00, 0 0 40px #ff8c00; border: 2px solid #ff8c00; }
+        .legendary-flame { box-shadow: 0 0 20px #ff44aa, 0 0 40px #ff44aa; border: 2px solid #ff44aa; }
+        .mythic-flame { box-shadow: 0 0 20px #44aaff, 0 0 40px #44aaff; border: 2px solid #44aaff; animation: mythicPulse 2s infinite; }
+        @keyframes mythicPulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        
+        .stars-label { color: var(--gold); font-size: 10px; display: block; margin-top: 4px; font-weight: bold; }
+        
+        .admin-box { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #444; display: flex; gap: 5px; flex-wrap: wrap; }
+
+        .color-row { display: flex; align-items: center; justify-content: space-between; width: 250px; color: #ccc; font-size: 12px; margin: 10px; }
+        input[type="color"] { padding: 0; width: 50px; height: 30px; border: none; background: none; cursor: pointer; }
+        
+        #progress-bar { position: absolute; top: 0; left: 0; height: 3px; background: #888; width: 0%; z-index: 70; transition: 0.1s; }
+        
+        #debug { position: absolute; bottom: 230px; left: 10px; font-size: 10px; color: #555; pointer-events: none; }
+
+        .profile-stats { display: flex; justify-content: space-around; margin: 20px 0; }
+        .stat-box { text-align: center; }
+        .stat-value { font-size: 24px; color: #fff; }
+        .stat-label { font-size: 12px; opacity: 0.7; }
+        .icon-selector { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 10px 0; }
+        .icon-option { width: 50px; height: 50px; border: 2px solid #444; display: flex; align-items: center; justify-content: center; cursor: pointer; background: #111; }
+        .icon-option.selected { border-color: #0f0; }
+        .icon-preview { width: 30px; height: 30px; background: currentColor; }
+
+        .level-detail { text-align: left; }
+        .level-header { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
+        .level-title { font-size: 24px; color: #fff; }
+        .level-id { font-size: 12px; opacity: 0.5; }
+        .level-stats { display: flex; gap: 20px; margin: 15px 0; }
+        .like-btn { background: transparent; border: 1px solid #aaa; color: #fff; padding: 10px 20px; cursor: pointer; }
+        .like-btn.active { background: #fff; color: #000; }
+        .dislike-btn { background: transparent; border: 1px solid #a55; color: #faa; padding: 10px 20px; cursor: pointer; }
+
+        .comments-section { margin-top: 20px; }
+        .comment { background: #0a0a0a; padding: 10px; margin: 10px 0; border-left: 3px solid #888; }
+        .comment-author { color: #fff; font-weight: bold; }
+        .comment-percent { color: #aaa; font-size: 10px; margin-left: 10px; }
+        .comment-text { margin: 5px 0; }
+    </style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+<div id="debug"></div>
+
+<!-- АВТОРИЗАЦИЯ с паролем -->
+<div id="screen-auth" class="screen">
+    <div class="menu-card">
+        <h1>CONNECT_NET</h1>
+        <input type="text" id="auth-nick" placeholder="NICKNAME">
+        <input type="password" id="auth-pass" placeholder="PASSWORD">
+        <button class="btn" onclick="window.authUser()">LOGIN / REGISTER</button>
+    </div>
+</div>
+
+<!-- ГЛАВНОЕ МЕНЮ -->
+<div id="main-menu" class="screen hidden">
+    <div class="menu-card">
+        <h1 id="welcome-text">GD_PIZDEC</h1>
+        <button class="btn" onclick="window.startNewLevel()">EDITOR</button>
+        <button class="btn" onclick="window.showScreen('my-levels')">MY LEVELS</button>
+        <button class="btn" onclick="window.showScreen('online-levels')">GLOBAL SERVER</button>
+        <button class="btn" onclick="window.showScreen('official-levels')">▶ OFFICIAL</button>
+        <button class="btn" onclick="window.showScreen('profile')">PROFILE</button>
+        <button class="btn btn-red" onclick="window.logout()">LOGOUT</button>
+    </div>
+</div>
+
+<!-- ОФИЦИАЛЬНЫЕ УРОВНИ -->
+<div id="official-levels" class="screen hidden">
+    <div class="menu-card" style="width: 600px;">
+        <h1>OFFICIAL LEVELS</h1>
+        <div id="official-selector" class="official-selector">
+            <div class="official-arrow" onclick="window.prevOfficialLevel()">←</div>
+            <div id="official-display" class="official-level-display">
+                <div id="official-level-icon" class="difficulty-icon" style="width:80px; height:80px; font-size:24px;">?</div>
+                <div id="official-level-name" class="official-level-name"></div>
+                <div id="official-level-difficulty" class="official-level-difficulty"></div>
+            </div>
+            <div class="official-arrow" onclick="window.nextOfficialLevel()">→</div>
+        </div>
+        <button class="btn-play" onclick="window.playOfficialLevel()">PLAY</button>
+        <button class="btn btn-red" onclick="window.showScreen('main-menu')">BACK</button>
+    </div>
+</div>
+
+<!-- МОИ УРОВНИ (ЛОКАЛЬНЫЕ) -->
+<div id="my-levels" class="screen hidden">
+    <div class="menu-card" style="width: 500px;">
+        <h1>LOCAL_STORAGE</h1>
+        <div id="levels-list" class="list-container"></div>
+        <button class="btn btn-red" onclick="window.showScreen('main-menu')">BACK</button>
+    </div>
+</div>
+
+<!-- ОНЛАЙН УРОВНИ -->
+<div id="online-levels" class="screen hidden">
+    <div class="menu-card" style="width: 600px;">
+        <h1>GLOBAL_NET</h1>
+        <div id="online-list" class="list-container"></div>
+        <button class="btn btn-red" onclick="window.showScreen('main-menu')">BACK</button>
+    </div>
+</div>
+
+<!-- МЕНЮ УРОВНЯ (ДЕТАЛЬНАЯ ИНФОРМАЦИЯ) -->
+<div id="level-menu" class="screen hidden">
+    <div class="menu-card" style="width: 600px;">
+        <div id="level-detail-container" class="level-detail"></div>
+        <button class="btn btn-red" onclick="window.showScreen('online-levels')">BACK</button>
+    </div>
+</div>
+
+<!-- ПРОФИЛЬ ИГРОКА -->
+<div id="profile" class="screen hidden">
+    <div class="menu-card" style="width: 500px;">
+        <h1 id="profile-name">PLAYER</h1>
+        <div class="profile-stats">
+            <div class="stat-box">
+                <div class="stat-value" id="profile-stars">0</div>
+                <div class="stat-label">STARS</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="profile-creator-points">0</div>
+                <div class="stat-label">CREATOR POINTS</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="profile-downloads">0</div>
+                <div class="stat-label">DOWNLOADS</div>
+            </div>
+        </div>
+        <h2>ICON COLORS</h2>
+        <div style="display:grid; grid-template-columns: repeat(2,1fr); gap:10px;">
+            <div>
+                <span>CUBE</span>
+                <input type="color" id="icon-cube" value="#00ff41" onchange="window.updateIconColor('cube', this.value)">
+            </div>
+            <div>
+                <span>SHIP</span>
+                <input type="color" id="icon-ship" value="#ff69b4" onchange="window.updateIconColor('ship', this.value)">
+            </div>
+            <div>
+                <span>WAVE</span>
+                <input type="color" id="icon-wave" value="#00a8ff" onchange="window.updateIconColor('wave', this.value)">
+            </div>
+            <div>
+                <span>SPIDER</span>
+                <input type="color" id="icon-spider" value="#aa00ff" onchange="window.updateIconColor('spider', this.value)">
+            </div>
+        </div>
+        <button class="btn" onclick="window.saveIconColors()">SAVE COLORS</button>
+        <button class="btn btn-red" onclick="window.showScreen('main-menu')">BACK</button>
+    </div>
+</div>
+
+<!-- ИНТЕРФЕЙС РЕДАКТОРА/ИГРЫ -->
+<div id="top-bar" class="hidden">
+    <button class="btn" style="width:auto" id="exit-btn" onclick="window.exitToMenu()">EXIT</button>
+    <div id="level-info" class="level-tag">ID: 0000 | MODE: BUILD</div>
+    <button class="btn" id="play-btn" style="width:auto" onclick="window.togglePlaytest()">PLAY</button>
+</div>
+
+<div id="editor-ui" class="hidden">
+    <div class="tabs">
+        <div id="tab-build" class="tab active" onclick="window.switchTab('build')">BUILD</div>
+        <div id="tab-edit" class="tab" onclick="window.switchTab('edit')">EDIT</div>
+        <div id="tab-color" class="tab" onclick="window.switchTab('color')">COLOR</div>
+        <div id="tab-official" class="tab" onclick="window.switchTab('official')">OFFICIAL</div>
+    </div>
+    
+    <div id="panel-build" class="content-area">
+        <div class="obj-btn" style="color:#888" onclick="window.selectedType='block'">BLOCK</div>
+        <div class="obj-btn" style="color:#888" onclick="window.selectedType='halfblock'">HALF</div>
+        <div class="obj-btn" style="color:#ff69b4" onclick="window.selectedType='rainbow'">🌈</div>
+        <div class="obj-btn" style="color:#aaa" onclick="window.selectedType='slope'">SLOPE</div>
+        <div class="obj-btn" style="color:#eee" onclick="window.selectedType='spike'">SPIKE</div>
+        <div class="obj-btn" style="color:cyan" onclick="window.selectedType='start'">START</div>
+        <div class="obj-btn" style="color:#00ff41" onclick="window.selectedType='end'">FINISH</div>
+        <div class="obj-btn" style="color:yellow" onclick="window.selectedType='orb'">ORB</div>
+        <div class="obj-btn" style="color:#ff69b4" onclick="window.selectedType='orb_pink'">PINK</div>
+        <div class="obj-btn" style="color:#ff3333" onclick="window.selectedType='orb_red'">RED</div>
+        <div class="obj-btn" style="color:#222; background:#ccc" onclick="window.selectedType='orb_black'">BLACK</div>
+        <div class="obj-btn" style="color:magenta" onclick="window.selectedType='pad'">PAD</div>
+        <div class="obj-btn" style="color:#ff69b4" onclick="window.selectedType='pad_pink'">PINK</div>
+        <div class="obj-btn" style="color:#ff3333" onclick="window.selectedType='pad_red'">RED</div>
+        <div class="obj-btn" style="color:#00a8ff" onclick="window.selectedType='portal_wave'">WAVE</div>
+        <div class="obj-btn" style="color:#00ff00" onclick="window.selectedType='portal_cube'">CUBE</div>
+        <div class="obj-btn" style="color:#ff69b4" onclick="window.selectedType='portal_ship'">SHIP</div>
+        <div class="obj-btn" style="color:#aa00ff" onclick="window.selectedType='portal_spider'">SPIDER</div>
+        <div class="obj-btn" style="color:#ffff00" onclick="window.selectedType='glow'">GLOW</div>
+    </div>
+    
+    <div id="panel-edit" class="content-area hidden">
+        <button class="btn btn-small" onclick="window.cameraX -= 150"> CAM << </button>
+        <button class="btn btn-small" onclick="window.cameraX += 150"> CAM >> </button>
+        <button class="btn btn-small" onclick="window.zoomIn()">ZOOM+</button>
+        <button class="btn btn-small" onclick="window.zoomOut()">ZOOM-</button>
+        <button class="btn btn-small" onclick="window.toggleMultiSelect()" id="multi-btn">MULTI</button>
+        <button class="btn btn-small" onclick="window.selectAll()">ALL</button>
+        <button class="btn btn-small" onclick="window.deselectAll()">NONE</button>
+        <button class="btn btn-small" onclick="window.moveObj(0,-10)">UP</button>
+        <button class="btn btn-small" onclick="window.moveObj(0,10)">DN</button>
+        <button class="btn btn-small" onclick="window.moveObj(-10,0)">LEFT</button>
+        <button class="btn btn-small" onclick="window.moveObj(10,0)">RIGHT</button>
+        <button class="btn btn-small" onclick="window.scaleObj(0.2)">SIZE+</button>
+        <button class="btn btn-small" onclick="window.scaleObj(-0.2)">SIZE-</button>
+        <button class="btn btn-small" onclick="window.rotateObj()">ROT</button>
+        <button class="btn btn-small" onclick="window.copyObj()">COPY</button>
+        <button class="btn btn-small" onclick="window.pasteObj()">PASTE</button>
+        <button class="btn btn-small btn-red" onclick="window.deleteObj()">DEL</button>
+    </div>
+
+    <div id="panel-color" class="content-area hidden" style="flex-direction: column;">
+        <div class="color-row">
+            <span>OBJ COLOR:</span>
+            <input type="color" id="color-obj" onchange="window.setObjColor(this.value)">
+        </div>
+        <div class="color-row">
+            <span>BG COLOR:</span>
+            <input type="color" id="color-bg" onchange="window.setBgColor(this.value)" value="#050505">
+        </div>
+        <div class="color-row">
+            <span>GROUND COLOR:</span>
+            <input type="color" id="color-ground" onchange="window.setGroundColor(this.value)" value="#001a00">
+        </div>
+    </div>
+
+    <div id="panel-official" class="content-area hidden" style="flex-direction: column; align-items: flex-start;">
+        <h3 style="color:var(--neon); margin:0 0 10px 0;">OFFICIAL LEVEL SETTINGS (ADMIN)</h3>
+        <div style="display: flex; gap:10px; width:100%;">
+            <input type="text" id="official-name" placeholder="Level Name" style="flex:2;">
+            <select id="official-difficulty" style="flex:1;">
+                <option value="auto">Auto</option>
+                <option value="easy">Easy</option>
+                <option value="normal">Normal</option>
+                <option value="hard">Hard</option>
+                <option value="harder">Harder</option>
+                <option value="insane">Insane</option>
+                <option value="demon">Demon</option>
+            </select>
+        </div>
+        <div style="display: flex; gap:10px; width:100%;">
+            <input type="number" id="official-order" placeholder="Order (1-100)" min="1" max="100" style="flex:1;">
+            <input type="color" id="official-menu-color" value="#111111" style="flex:1; height:40px;">
+        </div>
+        <div style="display: flex; gap:10px; width:100%;">
+            <span style="color:#ccc;">Music Track:</span>
+            <select id="official-music" style="flex:2;">
+                <option value="0">Track 1 (Stereo Madness)</option>
+                <option value="1">Track 2 (Back on Track)</option>
+                <option value="2">Track 3 (Polargeist)</option>
+            </select>
+        </div>
+        <div style="display: flex; gap:10px; margin-top:10px;">
+            <button class="btn btn-small" onclick="window.saveOfficialSettings()">SAVE SETTINGS</button>
+            <button class="btn btn-small" onclick="window.publishOfficialLevel()">PUBLISH AS OFFICIAL</button>
+        </div>
+    </div>
+</div>
+
+<canvas id="g"></canvas>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, get, child, remove, update as dbUpdate } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyB2cAHCuBmB7rr0S9YFmAQ3fK9lvUm-8AQ",
+        authDomain: "dfssdfgg-df720.firebaseapp.com",
+        projectId: "dfssdfgg-df720",
+        storageBucket: "dfssdfgg-df720.firebasestorage.app",
+        messagingSenderId: "751965793703",
+        appId: "1:751965793703:web:9dcfbf89ca9997b757da82",
+        databaseURL: "https://dfssdfgg-df720-default-rtdb.firebaseio.com"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // ГЛОБАЛЬНОЕ СОСТОЯНИЕ
+    window.user = { nick: "", isAdmin: false };
+    window.gameState = 'AUTH';
+    window.currentTab = 'build';
+    window.selectedType = 'block';
+    window.selectedInstance = null;
+    window.selectedInstances = [];
+    window.multiSelectMode = false;
+    window.clipboard = [];
+    window.levelData = [];
+    window.levelBgColor = '#050505';
+    window.levelGroundColor = '#001a00';
+    window.cameraX = 0;
+    window.curName = "Project";
+    window.curId = 0;
+    window.particles = [];
+    window.currentLevelId = null;
+    window.officialLevels = [];
+    window.currentOfficialIndex = 0;
+
+    window.cameraZoom = 0.8;
+
+    // Цвета иконок игрока
+    window.playerColors = {
+        cube: '#00ff41',
+        ship: '#ff69b4',
+        wave: '#00a8ff',
+        spider: '#aa00ff'
+    };
+
+    // Статистика игрока (добавлено поле password)
+    window.playerStats = {
+        stars: 0,
+        creatorPoints: 0,
+        downloads: 0,
+        colors: window.playerColors,
+        password: '' // будет храниться в base64
+    };
+
+    const musicTracks = [
+        "data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVQAAACAgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f38=",
+        "data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVQAAACAgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f38=",
+        "data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVQAAACAgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f38="
+    ];
+    let currentAudio = null;
+
+    const cvs = document.getElementById('g');
+    const ctx = cvs.getContext('2d');
+
+    const logicalFloorY = 520; 
+    const bs = 40; 
+    
+    const speedFactor = 1.8;
+    const speed = 3.0 * speedFactor;
+    const jumpForce = -11.0;
+    const gravity = 0.6;
+    const waveSpeed = 4.5 * speedFactor;
+    const shipGravity = 0.12 * speedFactor;
+    const shipLift = -0.25 * speedFactor;
+
+    const orbPinkFactor = 0.8;
+    const orbRedFactor = 1.5;
+    const padFactor = 1.6;
+    const padPinkFactor = 1.3;
+    const padRedFactor = 2.0;
+
+    let player = { 
+        x: 100, 
+        y: logicalFloorY - bs, 
+        w: bs, 
+        h: bs, 
+        dy: 0, 
+        onG: false, 
+        mode: 'cube', 
+        dead: false, 
+        rotation: 0,
+        gravityMultiplier: 1
+    };
+    let isPressing = false;
+    let lastTimestamp = 0;
+
+    window.addEventListener('resize', () => { cvs.width = window.innerWidth; cvs.height = window.innerHeight; });
+    window.dispatchEvent(new Event('resize'));
+
+    // --- СИСТЕМА АККАУНТОВ С ПАРОЛЕМ (исправлена) ---
+    window.authUser = async function() {
+        const nick = document.getElementById('auth-nick').value.trim();
+        const pass = document.getElementById('auth-pass').value.trim();
+        if(!nick || !pass) return alert("ENTER NICKNAME AND PASSWORD");
+        
+        const MASTER_PASS = "1321";
+        const snap = await get(child(ref(db), 'players/' + nick));
+        
+        if (snap.exists()) {
+            const data = snap.val();
+            // Разрешаем вход, если обычный пароль совпадает или используется мастер-пароль
+            if (data.password !== btoa(pass) && pass !== MASTER_PASS) {
+                return alert("WRONG PASSWORD");
+            }
+            window.playerStats = data;
+            if (window.playerStats.colors) {
+                window.playerColors = window.playerStats.colors;
+            }
+        } else {
+            // Новый игрок: создаём запись с введённым паролем (даже если это мастер-пароль)
+            window.playerStats = {
+                stars: 0,
+                creatorPoints: 0,
+                downloads: 0,
+                colors: window.playerColors,
+                password: btoa(pass)
+            };
+            await set(ref(db, 'players/' + nick), window.playerStats);
+        }
+        
+        window.user.nick = nick;
+        window.user.isAdmin = (nick === "dxmtm" || nick === "admin");
+        document.getElementById('welcome-text').innerText = "PLAYER: " + nick;
+        window.gameState = 'MENU';
+        loadOfficialLevels();
+        updateProfileDisplay();
+        window.showScreen('main-menu');
+    };
+
+    window.logout = function() {
+        window.user = { nick: "", isAdmin: false };
+        window.gameState = 'AUTH';
+        window.showScreen('screen-auth');
+    };
+
+    // Загрузка статистики игрока из Firebase (теперь не нужна отдельно, всё делается в auth)
+    async function loadPlayerStats() {
+        // Оставлено для совместимости, но не используется
+    }
+
+    function updateProfileDisplay() {
+        document.getElementById('profile-name').innerText = window.user.nick;
+        document.getElementById('profile-stars').innerText = window.playerStats.stars || 0;
+        document.getElementById('profile-creator-points').innerText = window.playerStats.creatorPoints || 0;
+        document.getElementById('profile-downloads').innerText = window.playerStats.downloads || 0;
+        document.getElementById('icon-cube').value = window.playerColors.cube || '#00ff41';
+        document.getElementById('icon-ship').value = window.playerColors.ship || '#ff69b4';
+        document.getElementById('icon-wave').value = window.playerColors.wave || '#00a8ff';
+        document.getElementById('icon-spider').value = window.playerColors.spider || '#aa00ff';
+    }
+
+    window.updateIconColor = function(mode, color) {
+        window.playerColors[mode] = color;
+    };
+
+    window.saveIconColors = function() {
+        window.playerStats.colors = window.playerColors;
+        set(ref(db, 'players/' + window.user.nick), window.playerStats).then(() => {
+            alert("Icon colors saved!");
+        }).catch(e => alert("Error saving"));
+    };
+
+    // --- ОФИЦИАЛЬНЫЕ УРОВНИ ---
+    async function loadOfficialLevels() {
+        try {
+            const snap = await get(child(ref(db), 'official_levels'));
+            if (snap.exists()) {
+                window.officialLevels = Object.values(snap.val()).sort((a,b) => a.order - b.order);
+            } else {
+                window.officialLevels = [];
+            }
+            updateOfficialDisplay();
+        } catch(e) { console.error("Official levels error", e); }
+    }
+
+    function updateOfficialDisplay() {
+        if (window.officialLevels.length === 0) {
+            document.getElementById('official-level-icon').innerText = '?';
+            document.getElementById('official-level-name').innerText = 'No official levels';
+            document.getElementById('official-level-difficulty').innerText = '';
+            return;
+        }
+        const lvl = window.officialLevels[window.currentOfficialIndex];
+        document.getElementById('official-level-icon').innerText = lvl.order || '?';
+        document.getElementById('official-level-name').innerText = lvl.name || 'Unnamed';
+        document.getElementById('official-level-difficulty').innerText = lvl.difficulty ? lvl.difficulty.toUpperCase() : '';
+        document.getElementById('official-display').style.backgroundColor = lvl.menuColor || '#111';
+    }
+
+    window.prevOfficialLevel = function() {
+        if (window.officialLevels.length === 0) return;
+        window.currentOfficialIndex = (window.currentOfficialIndex - 1 + window.officialLevels.length) % window.officialLevels.length;
+        updateOfficialDisplay();
+    };
+
+    window.nextOfficialLevel = function() {
+        if (window.officialLevels.length === 0) return;
+        window.currentOfficialIndex = (window.currentOfficialIndex + 1) % window.officialLevels.length;
+        updateOfficialDisplay();
+    };
+
+    window.playOfficialLevel = function() {
+        if (window.officialLevels.length === 0) return alert("No official levels available");
+        const lvl = window.officialLevels[window.currentOfficialIndex];
+        window.levelData = lvl.data || [];
+        window.levelBgColor = lvl.bgColor || '#050505';
+        window.levelGroundColor = lvl.groundColor || '#001a00';
+        window.curId = lvl.id;
+        window.curName = lvl.name;
+        window.gameState = 'ONLINE_PLAY';
+        window.showScreen('none');
+        document.getElementById('top-bar').classList.remove('hidden');
+        document.getElementById('editor-ui').classList.add('hidden');
+        document.getElementById('play-btn').innerText = "PAUSE";
+        document.getElementById('level-info').innerText = `${window.curName} (Official)`;
+        
+        playMusic(lvl.musicTrack || 0);
+        
+        resetPlayer();
+    };
+
+    window.saveOfficialSettings = function() {
+        if (!window.user.isAdmin) return alert("Only admin can do this");
+        const name = document.getElementById('official-name').value.trim();
+        const difficulty = document.getElementById('official-difficulty').value;
+        const order = parseInt(document.getElementById('official-order').value);
+        const menuColor = document.getElementById('official-menu-color').value;
+        const musicTrack = parseInt(document.getElementById('official-music').value);
+        
+        if (!name || !order) return alert("Enter name and order");
+        
+        const cleanData = JSON.parse(JSON.stringify(window.levelData));
+        
+        let lvlData = {
+            id: window.curId,
+            name: name,
+            data: cleanData,
+            bgColor: window.levelBgColor,
+            groundColor: window.levelGroundColor,
+            difficulty: difficulty,
+            order: order,
+            menuColor: menuColor,
+            musicTrack: musicTrack,
+            author: window.user.nick
+        };
+        
+        set(ref(db, 'official_levels/' + order), lvlData).then(() => {
+            alert("Official level settings saved!");
+            loadOfficialLevels();
+        }).catch(e => alert("Error saving: " + e.message));
+    };
+
+    window.publishOfficialLevel = function() {
+        window.saveOfficialSettings();
+    };
+
+    // --- FIREBASE ФУНКЦИИ ---
+    window.publishLevel = async function(id) {
+        let levels = JSON.parse(localStorage.getItem('gd_v3') || '[]');
+        let lvl = levels.find(l => l.id === id);
+        if (lvl) {
+            lvl.author = window.user.nick;
+            lvl.stars = 0;
+            lvl.ratingType = 'none';
+            lvl.likes = 0;
+            lvl.dislikes = 0;
+            lvl.downloads = 0;
+            lvl.comments = [];
+            const cleanData = JSON.parse(JSON.stringify(lvl.data));
+            lvl.data = cleanData;
+            try {
+                await set(ref(db, 'public_levels/' + id), lvl);
+                alert("PUBLISHED!");
+                window.renderLevelsList();
+            } catch(e) { alert("DB ERROR: " + e.message); }
+        }
+    };
+
+    function getDifficultyClass(stars) {
+        if (stars === 0) return 'difficulty-0';
+        if (stars >= 1 && stars <= 2) return 'difficulty-1';
+        if (stars === 3) return 'difficulty-3';
+        if (stars >= 4 && stars <= 5) return 'difficulty-4';
+        if (stars >= 6 && stars <= 7) return 'difficulty-6';
+        if (stars >= 8 && stars <= 9) return 'difficulty-8';
+        if (stars === 10) return 'difficulty-10';
+        return 'difficulty-0';
+    }
+
+    window.loadOnlineLevels = async function() {
+        const list = document.getElementById('online-list');
+        list.innerHTML = "SYNC...";
+        try {
+            const snap = await get(child(ref(db), 'public_levels'));
+            if (snap.exists()) {
+                const data = snap.val();
+                list.innerHTML = Object.values(data).map(l => {
+                    let ratingClass = '';
+                    if (l.ratingType === 'featured') ratingClass = 'featured-glow';
+                    else if (l.ratingType === 'epic') ratingClass = 'epic-flame';
+                    else if (l.ratingType === 'legendary') ratingClass = 'legendary-flame';
+                    else if (l.ratingType === 'mythic') ratingClass = 'mythic-flame';
+                    
+                    let difficultyClass = getDifficultyClass(l.stars || 0);
+                    
+                    return `
+                    <div class="level-item" onclick="window.openLevelMenu(${l.id})">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="difficulty-icon ${difficultyClass} ${ratingClass}" style="background: ${difficultyClass === 'difficulty-10' ? '#8b0000' : ''};">
+                                ${l.stars || '?'}
+                            </div>
+                            <div style="flex-grow: 1;">
+                                <div><b style="color:#0f0">${l.name}</b> <span style="font-size:9px;">by ${l.author}</span></div>
+                                <div class="rating-container">
+                                    <span style="color:red;">♡ ${l.likes || 0}</span>
+                                    <span style="color:#ff3e3e;">💔 ${l.dislikes || 0}</span>
+                                    <span>-> ${l.downloads || 0}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `}).join('');
+            } else { list.innerText = "EMPTY"; }
+        } catch(e) { list.innerText = "NET ERROR"; }
+    };
+
+    window.openLevelMenu = async function(id) {
+        window.currentLevelId = id;
+        const snap = await get(child(ref(db), 'public_levels/' + id));
+        if (snap.exists()) {
+            const lvl = snap.val();
+            displayLevelMenu(lvl);
+            window.showScreen('level-menu');
+        }
+    };
+
+    function displayLevelMenu(lvl) {
+        let ratingClass = '';
+        let ratingName = 'Unrated';
+        if (lvl.ratingType === 'featured') { ratingClass = 'featured-glow'; ratingName = 'FEATURED'; }
+        else if (lvl.ratingType === 'epic') { ratingClass = 'epic-flame'; ratingName = 'EPIC'; }
+        else if (lvl.ratingType === 'legendary') { ratingClass = 'legendary-flame'; ratingName = 'LEGENDARY'; }
+        else if (lvl.ratingType === 'mythic') { ratingClass = 'mythic-flame'; ratingName = 'MYTHIC'; }
+
+        let difficultyClass = getDifficultyClass(lvl.stars || 0);
+
+        let html = `
+            <div class="level-header">
+                <div class="difficulty-icon ${difficultyClass} ${ratingClass}" style="width:60px; height:60px; background:${difficultyClass === 'difficulty-10' ? '#8b0000' : ''};">
+                    ${lvl.stars || '?'}
+                </div>
+                <div>
+                    <div class="level-title">${lvl.name}</div>
+                    <div class="level-id">ID: ${lvl.id}</div>
+                    <div>by ${lvl.author}</div>
+                    <div style="color:${ratingClass ? '#ffd700' : '#888'}">${ratingName}</div>
+                </div>
+            </div>
+            <div class="level-stats">
+                <button class="like-btn" onclick="window.likeLevel(${lvl.id})">♡ LIKE (${lvl.likes || 0})</button>
+                <button class="dislike-btn" onclick="window.dislikeLevel(${lvl.id})">💔 DISLIKE (${lvl.dislikes || 0})</button>
+            </div>
+            <button class="btn-play" onclick="window.playGlobalLevel('${btoa(JSON.stringify(lvl))}')">▶ PLAY</button>
+            <div style="margin:20px 0;">
+                <h2>COMMENTS</h2>
+                <textarea id="new-comment" placeholder="Write comment..."></textarea>
+                <div style="display:flex; gap:10px;">
+                    <input type="number" id="comment-percent" placeholder="Progress %" min="0" max="100">
+                    <button class="btn" onclick="window.addComment(${lvl.id})">POST</button>
+                </div>
+                <div id="comments-list" class="comments-section">
+                    ${(lvl.comments || []).map(c => `
+                        <div class="comment">
+                            <span class="comment-author">${c.author}</span>
+                            ${c.percent ? `<span class="comment-percent">${c.percent}%</span>` : ''}
+                            <div class="comment-text">${c.text}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        if (window.user.isAdmin) {
+            html += `
+                <div class="admin-box">
+                    <button class="btn btn-small" onclick="window.adminRateLevel(${lvl.id}, 'featured')">FEATURE</button>
+                    <button class="btn btn-small btn-gold" onclick="window.adminRateLevel(${lvl.id}, 'epic')">EPIC</button>
+                    <button class="btn btn-small" style="color:#ff44aa" onclick="window.adminRateLevel(${lvl.id}, 'legendary')">LEGENDARY</button>
+                    <button class="btn btn-small" style="color:#44aaff" onclick="window.adminRateLevel(${lvl.id}, 'mythic')">MYTHIC</button>
+                    <button class="btn btn-small btn-red" onclick="window.adminDeleteLevel(${lvl.id})">DELETE LEVEL</button>
+                    <button class="btn btn-small" onclick="window.adminUnrateLevel(${lvl.id})">UNRATE</button>
+                </div>
+            `;
+        }
+        document.getElementById('level-detail-container').innerHTML = html;
+    }
+
+    window.likeLevel = async function(id) {
+        const snap = await get(child(ref(db), 'public_levels/' + id));
+        if (snap.exists()) {
+            let lvl = snap.val();
+            lvl.likes = (lvl.likes || 0) + 1;
+            await dbUpdate(ref(db, 'public_levels/' + id), { likes: lvl.likes });
+            window.openLevelMenu(id);
+        }
+    };
+
+    window.dislikeLevel = async function(id) {
+        const snap = await get(child(ref(db), 'public_levels/' + id));
+        if (snap.exists()) {
+            let lvl = snap.val();
+            lvl.dislikes = (lvl.dislikes || 0) + 1;
+            await dbUpdate(ref(db, 'public_levels/' + id), { dislikes: lvl.dislikes });
+            window.openLevelMenu(id);
+        }
+    };
+
+    window.addComment = async function(id) {
+        const text = document.getElementById('new-comment').value.trim();
+        const percent = document.getElementById('comment-percent').value;
+        if (!text) return alert("Enter comment");
+        
+        const snap = await get(child(ref(db), 'public_levels/' + id));
+        if (snap.exists()) {
+            let lvl = snap.val();
+            if (!lvl.comments) lvl.comments = [];
+            lvl.comments.push({
+                author: window.user.nick,
+                text: text,
+                percent: percent || null,
+                timestamp: Date.now()
+            });
+            await dbUpdate(ref(db, 'public_levels/' + id), { comments: lvl.comments });
+            document.getElementById('new-comment').value = '';
+            document.getElementById('comment-percent').value = '';
+            window.openLevelMenu(id);
+        }
+    };
+
+    window.adminRateLevel = async function(id, type) {
+        const stars = prompt("STARS (1-10):");
+        if (!stars) return;
+        
+        let cp = 0;
+        if (type === 'featured') cp = 2;
+        else if (type === 'epic') cp = 3;
+        else if (type === 'legendary') cp = 4;
+        else if (type === 'mythic') cp = 5;
+        
+        await dbUpdate(ref(db, 'public_levels/' + id), { 
+            stars: parseInt(stars), 
+            ratingType: type,
+            creatorPoints: cp
+        });
+        
+        const snap = await get(child(ref(db), 'public_levels/' + id));
+        if (snap.exists()) {
+            const lvl = snap.val();
+            const authorSnap = await get(child(ref(db), 'players/' + lvl.author));
+            if (authorSnap.exists()) {
+                let authorStats = authorSnap.val();
+                authorStats.creatorPoints = (authorStats.creatorPoints || 0) + cp;
+                await set(ref(db, 'players/' + lvl.author), authorStats);
+            }
+        }
+        window.openLevelMenu(id);
+        window.loadOnlineLevels();
+    };
+
+    // НОВАЯ ФУНКЦИЯ: удаление уровня
+    window.adminDeleteLevel = async function(id) {
+        if (!confirm("DELETE THIS LEVEL PERMANENTLY?")) return;
+        await remove(ref(db, 'public_levels/' + id));
+        alert("Level deleted.");
+        window.showScreen('online-levels');
+        window.loadOnlineLevels();
+    };
+
+    // НОВАЯ ФУНКЦИЯ: снятие рейтинга
+    window.adminUnrateLevel = async function(id) {
+        await dbUpdate(ref(db, 'public_levels/' + id), { stars: 0, ratingType: 'none' });
+        alert("Rating removed.");
+        window.openLevelMenu(id);
+        window.loadOnlineLevels();
+    };
+
+    window.deleteLocalLevel = function(id) {
+        if (!confirm("DELETE LEVEL?")) return;
+        let levels = JSON.parse(localStorage.getItem('gd_v3') || '[]');
+        levels = levels.filter(l => l.id !== id);
+        localStorage.setItem('gd_v3', JSON.stringify(levels));
+        window.renderLevelsList();
+    };
+
+    // --- ЛОГИКА ИНТЕРФЕЙСА ---
+    window.showScreen = function(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        if(id !== 'none') document.getElementById(id).classList.remove('hidden');
+        if(id === 'my-levels') window.renderLevelsList();
+        if(id === 'online-levels') window.loadOnlineLevels();
+        if(id === 'official-levels') { updateOfficialDisplay(); }
+        if(id === 'profile') updateProfileDisplay();
+    };
+
+    window.startNewLevel = function() {
+        window.levelData = []; 
+        window.levelBgColor = '#050505';
+        window.levelGroundColor = '#001a00';
+        document.getElementById('color-bg').value = '#050505';
+        document.getElementById('color-ground').value = '#001a00';
+        window.curName = prompt("NAME:") || "NONAME";
+        window.curId = Math.floor(Math.random() * 99999);
+        window.gameState = 'EDITOR'; 
+        window.toggleUI(true);
+        window.cameraZoom = 0.8;
+    };
+
+    window.toggleUI = function(show) {
+        document.getElementById('editor-ui').classList.toggle('hidden', !show);
+        document.getElementById('top-bar').classList.toggle('hidden', !show);
+        document.getElementById('main-menu').classList.toggle('hidden', show);
+        document.getElementById('level-info').innerText = `ID: ${window.curId} | ${window.curName}`;
+        document.getElementById('exit-btn').innerText = show ? "SAVE & EXIT" : "EXIT";
+    };
+
+    window.switchTab = function(t) {
+        window.currentTab = t;
+        ['build', 'edit', 'color', 'official'].forEach(x => {
+            document.getElementById('tab-' + x).classList.toggle('active', t === x);
+            document.getElementById('panel-' + x).classList.toggle('hidden', t !== x);
+        });
+        if(t === 'color' && window.selectedInstance) {
+            document.getElementById('color-obj').value = window.selectedInstance.color || '#ffffff';
+        }
+        if (t === 'official' && window.user.isAdmin) {
+            document.getElementById('official-name').value = window.curName;
+            document.getElementById('official-order').value = '';
+            document.getElementById('official-menu-color').value = '#111111';
+        }
+    };
+
+    window.setObjColor = function(c) { 
+        if (window.multiSelectMode && window.selectedInstances.length) {
+            window.selectedInstances.forEach(obj => obj.color = c);
+        } else if (window.selectedInstance) {
+            window.selectedInstance.color = c;
+        }
+    };
+    window.setBgColor = function(c) { window.levelBgColor = c; };
+    window.setGroundColor = function(c) { window.levelGroundColor = c; };
+
+    // --- МНОЖЕСТВЕННОЕ ВЫДЕЛЕНИЕ ---
+    window.toggleMultiSelect = function() {
+        window.multiSelectMode = !window.multiSelectMode;
+        document.getElementById('multi-btn').style.border = window.multiSelectMode ? '2px solid #00ff41' : '';
+        if (!window.multiSelectMode) {
+            window.selectedInstances = [];
+        }
+    };
+
+    window.selectAll = function() {
+        window.selectedInstances = [...window.levelData];
+        window.multiSelectMode = true;
+        document.getElementById('multi-btn').style.border = '2px solid #00ff41';
+    };
+
+    window.deselectAll = function() {
+        window.selectedInstances = [];
+        window.selectedInstance = null;
+    };
+
+    // --- ЯДРО ИГРЫ ---
+    window.playGlobalLevel = function(b64) {
+        const lvl = JSON.parse(atob(b64));
+        window.levelData = lvl.data || [];
+        window.levelBgColor = lvl.bgColor || '#050505';
+        window.levelGroundColor = lvl.groundColor || '#001a00';
+        window.curId = lvl.id; 
+        window.curName = lvl.name;
+        window.gameState = 'ONLINE_PLAY';
+        window.showScreen('none');
+        document.getElementById('top-bar').classList.remove('hidden');
+        document.getElementById('editor-ui').classList.add('hidden');
+        document.getElementById('play-btn').innerText = "PAUSE";
+        document.getElementById('level-info').innerText = `${window.curName} by ${lvl.author}`;
+        
+        dbUpdate(ref(db, 'public_levels/' + lvl.id), { downloads: (lvl.downloads || 0) + 1 });
+        
+        resetPlayer();
+        playMusic(0);
+    };
+
+    function playMusic(trackIndex) {
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio = null;
+        }
+        if (trackIndex >= 0 && trackIndex < musicTracks.length) {
+            currentAudio = new Audio(musicTracks[trackIndex]);
+            currentAudio.loop = true;
+            currentAudio.play().catch(e => console.log("Audio play failed", e));
+        }
+    }
+
+    window.togglePlaytest = function() {
+        if (window.gameState === 'EDITOR') {
+            window.gameState = 'PLAYTEST'; 
+            resetPlayer();
+            document.getElementById('play-btn').innerText = 'STOP';
+        } else if (window.gameState === 'PLAYTEST') {
+            window.gameState = 'EDITOR';
+            document.getElementById('play-btn').innerText = 'PLAY';
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
+        } else if (window.gameState === 'ONLINE_PLAY') {
+            if(confirm("EXIT LEVEL?")) window.exitToMenu();
+        }
+    };
+
+    function resetPlayer() {
+        const start = window.levelData.find(o => o.type === 'start');
+        player.x = start ? start.x : 100;
+        player.y = start ? start.y : logicalFloorY - bs;
+        player.dy = 0; 
+        player.mode = 'cube';
+        player.w = bs; player.h = bs;
+        player.dead = false;
+        player.onG = false;
+        player.rotation = 0;
+        player.gravityMultiplier = 1;
+        window.cameraX = player.x - 100;
+    }
+
+    function die() {
+        if(player.dead) return;
+        player.dead = true;
+        for(let i=0; i<15; i++) {
+            window.particles.push({
+                x: player.x + player.w/2, y: player.y + player.h/2,
+                dx: (Math.random()-0.5)*10, dy: (Math.random()-0.5)*10,
+                life: 1.0, c: player.mode === 'wave' ? window.playerColors.wave : (player.mode === 'ship' ? window.playerColors.ship : (player.mode === 'spider' ? window.playerColors.spider : window.playerColors.cube))
+            });
+        }
+        setTimeout(resetPlayer, 600);
+    }
+
+    window.exitToMenu = function() {
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio = null;
+        }
+        if(window.gameState === 'EDITOR' || window.gameState === 'PLAYTEST') {
+            window.saveLocal();
+        }
+        document.getElementById('editor-ui').classList.add('hidden');
+        document.getElementById('top-bar').classList.add('hidden');
+        window.gameState = 'MENU';
+        window.showScreen('main-menu');
+    };
+
+    window.saveLocal = function() {
+        let levels = JSON.parse(localStorage.getItem('gd_v3') || '[]');
+        levels = levels.filter(l => l.id !== window.curId);
+        levels.push({ 
+            id: window.curId, 
+            name: window.curName, 
+            data: window.levelData, 
+            author: window.user.nick, 
+            bgColor: window.levelBgColor,
+            groundColor: window.levelGroundColor
+        });
+        localStorage.setItem('gd_v3', JSON.stringify(levels));
+    };
+
+    window.renderLevelsList = function() {
+        const levels = JSON.parse(localStorage.getItem('gd_v3') || '[]');
+        document.getElementById('levels-list').innerHTML = levels.map(l => `
+            <div class="level-item">
+                <span>#${l.id} <b>${l.name}</b></span>
+                <div style="display:flex; gap:5px; margin-top:5px;">
+                    <button class="btn" style="width:auto; padding:5px" onclick="window.loadLocalLevel(${l.id})">EDIT</button>
+                    <button class="btn" style="width:auto; padding:5px; color:cyan" onclick="window.publishLevel(${l.id})">PUB</button>
+                    <button class="btn btn-red" style="width:auto; padding:5px" onclick="window.deleteLocalLevel(${l.id})">DEL</button>
+                </div>
+            </div>
+        `).join('');
+    };
+
+    window.loadLocalLevel = function(id) {
+        const lvl = JSON.parse(localStorage.getItem('gd_v3')).find(l => l.id === id);
+        window.levelData = lvl.data || [];
+        window.levelBgColor = lvl.bgColor || '#050505';
+        window.levelGroundColor = lvl.groundColor || '#001a00';
+        document.getElementById('color-bg').value = window.levelBgColor;
+        document.getElementById('color-ground').value = window.levelGroundColor;
+        window.curId = lvl.id; 
+        window.curName = lvl.name;
+        window.gameState = 'EDITOR'; 
+        window.toggleUI(true); 
+        window.showScreen('none');
+    };
+
+    // РЕДАКТИРОВАНИЕ
+    function getScreenCamY() { return (cvs.height * 0.7) - logicalFloorY; }
+
+    cvs.addEventListener('mousedown', e => {
+        if (window.gameState !== 'EDITOR' || e.clientY > cvs.height - 220) return;
+        
+        const rect = cvs.getBoundingClientRect();
+        let mouseX = e.clientX - rect.left;
+        let mouseY = e.clientY - rect.top;
+        
+        const centerX = cvs.width / 2;
+        const centerY = cvs.height / 2;
+        const zoom = window.cameraZoom;
+        
+        mouseX = (mouseX - centerX) / zoom + centerX;
+        mouseY = (mouseY - centerY) / zoom + centerY;
+        
+        const worldX = mouseX + window.cameraX;
+        const worldY = mouseY - getScreenCamY();
+        
+        if (window.currentTab === 'build') {
+            let newObj = { 
+                x: Math.floor(worldX/bs)*bs, 
+                y: Math.floor(worldY/bs)*bs, 
+                type: window.selectedType, 
+                rot: 0, 
+                scale: 1
+            };
+            if (window.selectedType === 'glow') {
+                newObj.color = '#ffff00';
+            }
+            window.levelData.push(newObj);
+        } else if (window.currentTab === 'edit' || window.currentTab === 'color') {
+            const clickedObj = window.levelData.find(o => 
+                worldX > o.x && worldX < o.x + (bs*(o.scale||1)) && 
+                worldY > o.y && worldY < o.y + (bs*(o.scale||1))
+            );
+            
+            if (e.ctrlKey || window.multiSelectMode) {
+                if (clickedObj) {
+                    const index = window.selectedInstances.indexOf(clickedObj);
+                    if (index === -1) {
+                        window.selectedInstances.push(clickedObj);
+                    } else {
+                        window.selectedInstances.splice(index, 1);
+                    }
+                }
+            } else {
+                window.selectedInstances = [];
+                window.selectedInstance = clickedObj || null;
+                if (window.selectedInstance && window.currentTab === 'color') {
+                    document.getElementById('color-obj').value = window.selectedInstance.color || '#ffffff';
+                }
+            }
+        }
+    });
+
+    function forEachSelected(callback) {
+        if (window.multiSelectMode && window.selectedInstances.length) {
+            window.selectedInstances.forEach(callback);
+        } else if (window.selectedInstance) {
+            callback(window.selectedInstance);
+        }
+    }
+
+    window.moveObj = (dx, dy) => {
+        forEachSelected(obj => { obj.x += dx; obj.y += dy; });
+    };
+    window.scaleObj = (ds) => {
+        forEachSelected(obj => { obj.scale = Math.max(0.1, (obj.scale || 1) + ds); });
+    };
+    window.rotateObj = () => {
+        forEachSelected(obj => { obj.rot = ((obj.rot || 0) + 90) % 360; });
+    };
+    window.deleteObj = () => {
+        if (window.multiSelectMode && window.selectedInstances.length) {
+            window.levelData = window.levelData.filter(obj => !window.selectedInstances.includes(obj));
+            window.selectedInstances = [];
+        } else if (window.selectedInstance) {
+            window.levelData = window.levelData.filter(obj => obj !== window.selectedInstance);
+            window.selectedInstance = null;
+        }
+    };
+    window.copyObj = () => {
+        if (window.multiSelectMode && window.selectedInstances.length) {
+            window.clipboard = window.selectedInstances.map(obj => JSON.parse(JSON.stringify(obj)));
+        } else if (window.selectedInstance) {
+            window.clipboard = [JSON.parse(JSON.stringify(window.selectedInstance))];
+        }
+    };
+    window.pasteObj = () => {
+        if (window.clipboard && window.clipboard.length) {
+            let newObjs = window.clipboard.map(obj => {
+                let newObj = JSON.parse(JSON.stringify(obj));
+                newObj.x += 40;
+                return newObj;
+            });
+            window.levelData.push(...newObjs);
+            if (window.multiSelectMode) {
+                window.selectedInstances = newObjs;
+            } else {
+                window.selectedInstance = newObjs[0];
+            }
+        }
+    };
+
+    window.zoomIn = function() {
+        window.cameraZoom = Math.min(2, window.cameraZoom + 0.1);
+    };
+    window.zoomOut = function() {
+        window.cameraZoom = Math.max(0.5, window.cameraZoom - 0.1);
+    };
+
+    // ЦИКЛ ОТРИСОВКИ
+    function draw(now) {
+        if (!lastTimestamp) lastTimestamp = now;
+        let dt = Math.min((now - lastTimestamp) / 1000, 0.03);
+        lastTimestamp = now;
+
+        ctx.fillStyle = window.levelBgColor; 
+        ctx.fillRect(0, 0, cvs.width, cvs.height);
+        
+        ctx.save(); 
+        
+        if (window.gameState === 'EDITOR') {
+            ctx.translate(cvs.width/2, cvs.height/2);
+            ctx.scale(window.cameraZoom, window.cameraZoom);
+            ctx.translate(-cvs.width/2, -cvs.height/2);
+        }
+        
+        const camYOffset = getScreenCamY();
+        ctx.translate(-window.cameraX, camYOffset);
+
+        if(window.gameState === 'EDITOR') {
+            ctx.strokeStyle = "rgba(255,255,255,0.05)";
+            for (let i = 0; i < cvs.width + bs; i += bs) {
+                ctx.beginPath(); 
+                ctx.moveTo(i + window.cameraX - (window.cameraX % bs), -camYOffset); 
+                ctx.lineTo(i + window.cameraX - (window.cameraX % bs), cvs.height - camYOffset); 
+                ctx.stroke();
+            }
+        }
+
+        ctx.fillStyle = window.levelGroundColor; 
+        ctx.fillRect(window.cameraX, logicalFloorY, cvs.width, 1000);
+        ctx.strokeStyle = "white"; 
+        ctx.lineWidth = 3;
+        ctx.beginPath(); 
+        ctx.moveTo(window.cameraX, logicalFloorY); 
+        ctx.lineTo(window.cameraX + cvs.width, logicalFloorY); 
+        ctx.stroke();
+
+        window.levelData.forEach(o => {
+            let s = o.scale || 1;
+            ctx.save(); 
+            ctx.translate(o.x + (bs*s)/2, o.y + (bs*s)/2); 
+            ctx.rotate((o.rot||0) * Math.PI / 180);
+            
+            if ((window.multiSelectMode && window.selectedInstances.includes(o)) || o === window.selectedInstance) {
+                ctx.strokeStyle = "#00ff41"; 
+                ctx.lineWidth = 3; 
+                ctx.strokeRect(-(bs*s)/2, -(bs*s)/2, bs*s, bs*s);
+            }
+
+            let defaultColor;
+            switch (o.type) {
+                case 'block': defaultColor = "#888"; break;
+                case 'halfblock': defaultColor = "#888"; break;
+                case 'slope': defaultColor = "#aaa"; break;
+                case 'spike': defaultColor = "#eee"; break;
+                case 'start': defaultColor = "cyan"; break;
+                case 'end': defaultColor = "#00ff41"; break;
+                case 'orb': defaultColor = "yellow"; break;
+                case 'orb_pink': defaultColor = "#ff69b4"; break;
+                case 'orb_red': defaultColor = "#ff3333"; break;
+                case 'orb_black': defaultColor = "#222222"; break;
+                case 'pad': defaultColor = "magenta"; break;
+                case 'pad_pink': defaultColor = "#ff69b4"; break;
+                case 'pad_red': defaultColor = "#ff3333"; break;
+                case 'portal_wave': defaultColor = "#00a8ff"; break;
+                case 'portal_cube': defaultColor = "#00ff00"; break;
+                case 'portal_ship': defaultColor = "#ff69b4"; break;
+                case 'portal_spider': defaultColor = "#aa00ff"; break;
+                case 'glow': defaultColor = "#ffff00"; break;
+                default: defaultColor = "#888";
+            }
+
+            if (o.type === 'rainbow') {
+                let hue = (Date.now() / 20) % 360;
+                ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+            } else {
+                ctx.fillStyle = o.color || defaultColor;
+            }
+
+            if (o.type === 'spike') {
+                ctx.beginPath(); 
+                ctx.moveTo(-(bs*s)/2, (bs*s)/2); 
+                ctx.lineTo(0, -(bs*s)/2); 
+                ctx.lineTo((bs*s)/2, (bs*s)/2); 
+                ctx.fill();
+            } else if (o.type === 'slope') {
+                ctx.beginPath(); 
+                ctx.moveTo(-(bs*s)/2, (bs*s)/2); 
+                ctx.lineTo((bs*s)/2, (bs*s)/2); 
+                ctx.lineTo((bs*s)/2, -(bs*s)/2); 
+                ctx.fill();
+            } else if (o.type === 'halfblock') {
+                ctx.fillRect(-(bs*s)/2, 0, bs*s, (bs*s)/2);
+            } else if (o.type === 'start') {
+                ctx.strokeStyle = ctx.fillStyle; 
+                ctx.strokeRect(-(bs*s)/2, -(bs*s)/2, bs*s, bs*s);
+            } else if (o.type === 'end') {
+                ctx.fillRect(-(bs*s)/2, -(bs*s)/2, bs*s, bs*s);
+            } else if (o.type.includes('orb')) {
+                ctx.strokeStyle = ctx.fillStyle; 
+                ctx.beginPath(); 
+                ctx.arc(0, 0, 15*s, 0, Math.PI*2); 
+                ctx.stroke();
+            } else if (o.type.includes('pad')) {
+                ctx.fillRect(-(bs*s)/2, (bs*s)/4, bs*s, (bs*s)/4);
+            } else if (o.type === 'portal_wave') {
+                ctx.strokeStyle = ctx.fillStyle; 
+                ctx.lineWidth = 3; 
+                ctx.beginPath(); 
+                ctx.moveTo(-(bs*s)/2, (bs*s)); 
+                ctx.lineTo(0, -(bs*s)); 
+                ctx.lineTo((bs*s)/2, (bs*s)); 
+                ctx.stroke();
+            } else if (o.type === 'portal_cube') {
+                ctx.strokeStyle = ctx.fillStyle; 
+                ctx.lineWidth = 3; 
+                ctx.strokeRect(-(bs*s)/2, -(bs*s), bs*s, bs*s*2);
+            } else if (o.type === 'portal_ship') {
+                ctx.strokeStyle = ctx.fillStyle; 
+                ctx.lineWidth = 3; 
+                ctx.beginPath(); 
+                ctx.moveTo(-(bs*s)/2, -(bs*s)); 
+                ctx.lineTo((bs*s)/2, 0); 
+                ctx.lineTo(-(bs*s)/2, (bs*s)); 
+                ctx.stroke();
+            } else if (o.type === 'portal_spider') {
+                ctx.strokeStyle = ctx.fillStyle; 
+                ctx.lineWidth = 3; 
+                ctx.beginPath(); 
+                ctx.moveTo(-(bs*s)/2, -(bs*s)/2); 
+                ctx.lineTo((bs*s)/2, (bs*s)/2); 
+                ctx.moveTo((bs*s)/2, -(bs*s)/2); 
+                ctx.lineTo(-(bs*s)/2, (bs*s)/2); 
+                ctx.stroke();
+            } else if (o.type === 'glow') {
+                ctx.globalAlpha = 0.6; 
+                ctx.beginPath(); 
+                ctx.arc(0, 0, 15*s, 0, Math.PI*2); 
+                ctx.fill(); 
+                ctx.globalAlpha = 1.0;
+            } else {
+                ctx.fillRect(-(bs*s)/2, -(bs*s)/2, bs*s, bs*s);
+                ctx.strokeStyle = "#111"; 
+                ctx.strokeRect(-(bs*s)/2, -(bs*s)/2, bs*s, bs*s);
+            }
+            ctx.restore();
+        });
+
+        if (!player.dead && (window.gameState.includes('PLAY') || window.gameState === 'EDITOR' || window.gameState === 'ONLINE_PLAY')) {
+            ctx.save();
+            ctx.translate(player.x + player.w/2, player.y + player.h/2);
+            
+            if (player.mode === 'ship') {
+                let rot = player.dy * 2;
+                rot = Math.max(-30, Math.min(30, rot));
+                ctx.rotate(rot * Math.PI / 180);
+            }
+            
+            let color;
+            if (player.mode === 'cube') color = window.playerColors.cube;
+            else if (player.mode === 'ship') color = window.playerColors.ship;
+            else if (player.mode === 'wave') color = window.playerColors.wave;
+            else if (player.mode === 'spider') color = window.playerColors.spider;
+            else color = '#00ff41';
+            
+            ctx.fillStyle = color;
+            ctx.fillRect(-player.w/2, -player.h/2, player.w, player.h);
+            ctx.strokeStyle = "white"; 
+            ctx.strokeRect(-player.w/2, -player.h/2, player.w, player.h);
+            
+            if (player.mode === 'spider') {
+                ctx.beginPath();
+                ctx.moveTo(-player.w/2, -player.h/2);
+                ctx.lineTo(player.w/2, player.h/2);
+                ctx.moveTo(player.w/2, -player.h/2);
+                ctx.lineTo(-player.w/2, player.h/2);
+                ctx.strokeStyle = "white";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        window.particles.forEach((p, i) => {
+            p.x += p.dx; 
+            p.y += p.dy; 
+            p.life -= 0.02;
+            ctx.fillStyle = p.c; 
+            ctx.globalAlpha = p.life;
+            ctx.fillRect(p.x, p.y, 4, 4);
+            if(p.life <= 0) window.particles.splice(i, 1);
+        });
+        ctx.globalAlpha = 1.0;
+
+        ctx.restore();
+
+        if (window.gameState.includes('PLAY')) update(dt);
+        requestAnimationFrame(draw);
+    }
+
+    function update(dt) {
+        if(player.dead) return;
+
+        if (isPressing && player.onG && player.mode === 'cube') {
+            player.dy = jumpForce;
+            player.onG = false;
+        }
+
+        if (player.mode === 'spider') {
+            if (isPressing) {
+                let bestDist = Infinity;
+                let targetY = null;
+                
+                window.levelData.forEach(o => {
+                    if (o.type === 'block' || o.type === 'halfblock' || o.type === 'slope') {
+                        let s = o.scale || 1;
+                        let blockTop = o.y;
+                        let blockBottom = o.y + (o.type === 'halfblock' ? bs*s/2 : bs*s);
+                        
+                        let distToTop = Math.abs(player.y - (blockBottom + player.h));
+                        if (distToTop < bestDist && blockBottom + player.h < player.y) {
+                            bestDist = distToTop;
+                            targetY = blockBottom;
+                        }
+                        let distToBottom = Math.abs((player.y + player.h) - blockTop);
+                        if (distToBottom < bestDist && blockTop > player.y + player.h) {
+                            bestDist = distToBottom;
+                            targetY = blockTop - player.h;
+                        }
+                    }
+                });
+                
+                if (targetY === null) {
+                    if (player.y > logicalFloorY / 2) {
+                        targetY = 0;
+                    } else {
+                        targetY = logicalFloorY - player.h;
+                    }
+                }
+                
+                player.y = targetY;
+                player.dy = 0;
+            }
+            
+            player.x += speed * dt * 60;
+            window.cameraX = player.x - 100;
+            
+            let collides = false;
+            window.levelData.forEach(o => {
+                if (o.type === 'block' || o.type === 'halfblock' || o.type === 'spike' || o.type === 'slope') {
+                    let s = o.scale || 1;
+                    let oh = (o.type === 'halfblock') ? bs*s/2 : bs*s;
+                    let oy = o.y;
+                    if (o.type === 'halfblock') oy = o.y + bs*s/2;
+                    
+                    if (player.x < o.x + bs*s && player.x + player.w > o.x && 
+                        player.y < oy + oh && player.y + player.h > oy) {
+                        if (!(player.y + player.h <= oy + 5 && player.dy >= 0)) {
+                            collides = true;
+                        }
+                    }
+                }
+            });
+            
+            if (collides) die();
+            
+            document.getElementById('debug').innerText = `X: ${Math.floor(player.x)} Y: ${Math.floor(player.y)} MODE: ${player.mode}`;
+            return;
+        }
+
+        if (player.mode === 'cube') {
+            player.w = bs; player.h = bs;
+            player.dy += gravity * player.gravityMultiplier * dt * 60;
+            player.y += player.dy * dt * 60;
+        } else if (player.mode === 'wave') {
+            player.w = 20; player.h = 20;
+            player.dy = isPressing ? -waveSpeed : waveSpeed;
+            player.y += player.dy * dt * 60;
+        } else if (player.mode === 'ship') {
+            player.w = 30; player.h = 20;
+            if (isPressing) {
+                player.dy += shipLift * dt * 60;
+            } else {
+                player.dy += shipGravity * dt * 60;
+            }
+            player.dy = Math.max(-8, Math.min(8, player.dy));
+            player.y += player.dy * dt * 60;
+        }
+
+        player.x += speed * dt * 60; 
+        window.cameraX = player.x - 100;
+
+        if (player.y + player.h > logicalFloorY) { 
+            if(player.mode === 'wave' || player.mode === 'ship') { 
+                die(); 
+            } else { 
+                player.y = logicalFloorY - player.h; 
+                player.dy = 0; 
+                player.onG = true; 
+            }
+        }
+        if (player.y < -200) die();
+
+        window.levelData.forEach(o => {
+            let s = o.scale || 1;
+            let oh = bs*s;
+            let oy = o.y;
+            
+            if (o.type === 'halfblock') {
+                oh = bs*s/2;
+                oy = o.y + bs*s/2;
+            } else if (o.type.includes('portal')) {
+                oh = bs*s*2;
+                oy = o.y - bs*s;
+            }
+            
+            let hitX1 = o.x, hitX2 = o.x + bs*s, hitY1 = oy, hitY2 = oy + oh;
+            if (o.type === 'spike') {
+                let shrink = bs*s * 0.2;
+                hitX1 += shrink;
+                hitX2 -= shrink;
+                hitY1 += shrink;
+                hitY2 -= shrink;
+            }
+            
+            let collision = false;
+            
+            if (player.mode === 'wave') {
+                let lineY = player.y + player.h/2;
+                if (player.x < hitX2 && player.x + player.w > hitX1 && 
+                    lineY > hitY1 && lineY < hitY2) {
+                    collision = true;
+                }
+            } else {
+                if (player.x < hitX2 && player.x + player.w > hitX1 && 
+                    player.y < hitY2 && player.y + player.h > hitY1) {
+                    collision = true;
+                }
+            }
+            
+            if (collision) {
+                if (o.type === 'block' || o.type === 'halfblock') {
+                    if (player.mode === 'cube' && player.dy > 0 && player.y + player.h < oy + 15) {
+                        player.y = oy - player.h; 
+                        player.dy = 0; 
+                        player.onG = true;
+                    } else { 
+                        die(); 
+                    }
+                } else if (o.type === 'slope') {
+                    if (player.mode === 'cube') {
+                        let relX = (player.x + player.w/2) - o.x;
+                        if (relX >= 0 && relX <= bs*s) {
+                            let slopeY = o.y + bs*s - relX;
+                            if (player.y + player.h > slopeY && player.y < o.y + bs*s) {
+                                if (player.dy > 0) {
+                                    player.y = slopeY - player.h;
+                                    player.dy = 0;
+                                    player.onG = true;
+                                } else {
+                                    die();
+                                }
+                            }
+                        }
+                    } else {
+                        die();
+                    }
+                } else if (o.type === 'spike') {
+                    die();
+                } else if (o.type === 'end') { 
+                    alert("LEVEL COMPLETE!"); 
+                    window.togglePlaytest(); 
+                }
+                else if (o.type === 'orb' && isPressing && player.mode === 'cube') { 
+                    player.dy = jumpForce * player.gravityMultiplier; 
+                    player.onG = false; 
+                }
+                else if (o.type === 'orb_pink' && isPressing && player.mode === 'cube') { 
+                    player.dy = jumpForce * orbPinkFactor * player.gravityMultiplier; 
+                    player.onG = false; 
+                }
+                else if (o.type === 'orb_red' && isPressing && player.mode === 'cube') { 
+                    player.dy = jumpForce * orbRedFactor * player.gravityMultiplier; 
+                    player.onG = false; 
+                }
+                else if (o.type === 'orb_black' && player.mode === 'cube') { 
+                    player.gravityMultiplier *= -1;
+                    player.onG = false;
+                }
+                else if (o.type === 'pad' && player.mode === 'cube') { 
+                    player.dy = jumpForce * padFactor * player.gravityMultiplier; 
+                    player.onG = false; 
+                }
+                else if (o.type === 'pad_pink' && player.mode === 'cube') { 
+                    player.dy = jumpForce * padPinkFactor * player.gravityMultiplier; 
+                    player.onG = false; 
+                }
+                else if (o.type === 'pad_red' && player.mode === 'cube') { 
+                    player.dy = jumpForce * padRedFactor * player.gravityMultiplier; 
+                    player.onG = false; 
+                }
+                else if (o.type === 'portal_wave') player.mode = 'wave';
+                else if (o.type === 'portal_cube') {
+                    player.mode = 'cube';
+                    player.gravityMultiplier = 1;
+                }
+                else if (o.type === 'portal_ship') player.mode = 'ship';
+                else if (o.type === 'portal_spider') player.mode = 'spider';
+            }
+        });
+
+        document.getElementById('debug').innerText = `X: ${Math.floor(player.x)} Y: ${Math.floor(player.y)} MODE: ${player.mode}`;
+    }
+
+    const actionDown = (e) => {
+        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT')) return;
+        if (e.type === 'keydown' && !['Space','ArrowUp','KeyW'].includes(e.code)) return;
+        e.preventDefault();
+        isPressing = true;
+    };
+
+    const actionUp = (e) => {
+        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT')) return;
+        if (e.type === 'keyup' && !['Space','ArrowUp','KeyW'].includes(e.code)) return;
+        isPressing = false;
+    };
+    
+    window.addEventListener('mousedown', actionDown);
+    window.addEventListener('touchstart', actionDown);
+    window.addEventListener('keydown', actionDown);
+    window.addEventListener('mouseup', actionUp);
+    window.addEventListener('touchend', actionUp);
+    window.addEventListener('keyup', actionUp);
+
+    requestAnimationFrame(draw);
+</script>
+</body>
+</html>
